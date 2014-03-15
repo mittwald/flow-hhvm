@@ -1,0 +1,102 @@
+diff -ur neos-vanilla/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/Image.php neos-hhvm/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/Image.php
+--- neos-vanilla/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/Image.php	2014-03-13 21:00:34.511570614 +0100
++++ neos-hhvm/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/Image.php	2014-03-13 23:19:51.298647894 +0100
+@@ -188,7 +188,10 @@
+ 	 * @return \TYPO3\Media\Domain\Model\ImageVariant
+ 	 * @see \TYPO3\Media\Domain\Service\ImageService::transformImage()
+ 	 */
+-	public function getThumbnail($maximumWidth = NULL, $maximumHeight = NULL, $ratioMode = ImageInterface::RATIOMODE_INSET) {
++	public function getThumbnail($maximumWidth = NULL, $maximumHeight = NULL, $ratioMode = NULL) {
++		if ($ratioMode === NULL) {
++			$ratioMode = ImageInterface::RATIOMODE_INSET;
++		}
+ 		$processingInstructions = array(
+ 			array(
+ 				'command' => 'thumbnail',
+diff -ur neos-vanilla/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/ImageVariant.php neos-hhvm/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/ImageVariant.php
+--- neos-vanilla/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/ImageVariant.php	2014-03-13 21:00:34.511570614 +0100
++++ neos-hhvm/Packages/Application/TYPO3.Media/Classes/TYPO3/Media/Domain/Model/ImageVariant.php	2014-03-13 23:20:23.974646951 +0100
+@@ -249,7 +249,10 @@
+ 	 * @return \TYPO3\Media\Domain\Model\ImageVariant
+ 	 * @see \TYPO3\Media\Domain\Model\Image::getThumbnail
+ 	 */
+-	public function getThumbnail($maximumWidth = NULL, $maximumHeight = NULL, $ratioMode = ImageInterface::RATIOMODE_INSET) {
++	public function getThumbnail($maximumWidth = NULL, $maximumHeight = NULL, $ratioMode = NULL) {
++		if ($ratioMode === NULL) {
++			$ratioMode = ImageInterface::RATIOMODE_INSET;
++		}
+ 		return $this->originalImage->getThumbnail($maximumWidth, $maximumHeight, $ratioMode);
+ 	}
+ 
+diff -ur neos-vanilla/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/BasicRequirements.php neos-hhvm/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/BasicRequirements.php
+--- neos-vanilla/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/BasicRequirements.php	2014-03-13 21:00:31.119570711 +0100
++++ neos-hhvm/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/BasicRequirements.php	2014-03-13 21:08:46.943556407 +0100
+@@ -36,7 +36,6 @@
+ 		'ctype' => 1329403183,
+ 		'dom' => 1329403184,
+ 		'date' => 1329403185,
+-		'libxml' => 1329403186,
+ 		'xmlreader' => 1329403187,
+ 		'xmlwriter' => 1329403188,
+ 		'SimpleXML' => 1329403189,
+diff -ur neos-vanilla/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/RequestHandler.php neos-hhvm/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/RequestHandler.php
+--- neos-vanilla/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/RequestHandler.php	2014-03-13 21:00:31.119570711 +0100
++++ neos-hhvm/Packages/Application/TYPO3.Setup/Classes/TYPO3/Setup/Core/RequestHandler.php	2014-03-13 21:08:05.279557609 +0100
+@@ -146,6 +146,9 @@
+ 	 */
+ 	protected function checkPhpBinary($phpBinaryPathAndFilename) {
+ 		$phpVersion = NULL;
++		if (defined('HHVM_VERSION')) {
++			return TRUE;
++		}
+ 		if (file_exists($phpBinaryPathAndFilename) && is_file($phpBinaryPathAndFilename)) {
+ 			if (DIRECTORY_SEPARATOR === '/') {
+ 				$phpCommand = '"' . escapeshellcmd(Files::getUnixStylePath($phpBinaryPathAndFilename)) . '"';
+diff -ur neos-vanilla/Packages/Application/TYPO3.TYPO3CR/Classes/TYPO3/TYPO3CR/Migration/Command/NodeCommandController.php neos-hhvm/Packages/Application/TYPO3.TYPO3CR/Classes/TYPO3/TYPO3CR/Migration/Command/NodeCommandController.php
+--- neos-vanilla/Packages/Application/TYPO3.TYPO3CR/Classes/TYPO3/TYPO3CR/Migration/Command/NodeCommandController.php	2014-03-13 21:00:16.971571120 +0100
++++ neos-hhvm/Packages/Application/TYPO3.TYPO3CR/Classes/TYPO3/TYPO3CR/Migration/Command/NodeCommandController.php	2014-03-13 23:13:49.350658336 +0100
+@@ -65,7 +65,11 @@
+ 	 * @param string $direction The direction to work in, MigrationStatus::DIRECTION_UP or MigrationStatus::DIRECTION_DOWN
+ 	 * @return void
+ 	 */
+-	public function migrateCommand($workspace, $version, $confirmation = FALSE, $direction = MigrationStatus::DIRECTION_UP) {
++	public function migrateCommand($workspace, $version, $confirmation = FALSE, $direction = NULL) {
++		// HHVM fix (issue #1499)
++		if ($direction === NULL) {
++			$direction = MigrationStatus::DIRECTION_UP;
++		}
+ 		$context = $this->prepareContext($workspace);
+ 		$migrationConfiguration = $direction === MigrationStatus::DIRECTION_UP ?
+ 			$this->migrationFactory->getMigrationForVersion($version)->getUpConfiguration() :
+diff -ur neos-vanilla/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Resize.php neos-hhvm/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Resize.php
+--- neos-vanilla/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Resize.php	2013-07-10 19:25:36.000000000 +0200
++++ neos-hhvm/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Resize.php	2014-03-13 23:21:43.138644667 +0100
+@@ -32,10 +32,10 @@
+      * @param BoxInterface $size
+      * @param string       $filter
+      */
+-    public function __construct(BoxInterface $size, $filter = ImageInterface::FILTER_UNDEFINED)
++    public function __construct(BoxInterface $size, $filter = NULL)
+     {
+         $this->size = $size;
+-        $this->filter = $filter;
++        $this->filter = $filter === NULL ? ImageInterface::FILTER_UNDEFINED : $filter;
+     }
+ 
+     /**
+diff -ur neos-vanilla/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Thumbnail.php neos-hhvm/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Thumbnail.php
+--- neos-vanilla/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Thumbnail.php	2013-07-10 19:25:36.000000000 +0200
++++ neos-hhvm/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basic/Thumbnail.php	2014-03-13 23:21:52.890644386 +0100
+@@ -36,10 +36,10 @@
+      * @param BoxInterface $size
+      * @param string       $mode
+      */
+-    public function __construct(BoxInterface $size, $mode = ImageInterface::THUMBNAIL_INSET)
++    public function __construct(BoxInterface $size, $mode = NULL)
+     {
+         $this->size = $size;
+-        $this->mode = $mode;
++        $this->mode = $mode === NULL ? ImageInterface::THUMBNAIL_INSET : $mode;
+     }
+ 
+     /**

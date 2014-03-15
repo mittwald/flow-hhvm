@@ -1,0 +1,394 @@
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Core/Bootstrap.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Core/Bootstrap.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Core/Bootstrap.php	2014-03-13 21:00:07.127571404 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Core/Bootstrap.php	2014-03-13 21:04:45.327563378 +0100
+@@ -549,9 +549,13 @@
+ 		ini_set('unicode.stream_encoding', 'utf-8');
+ 		ini_set('unicode.runtime_encoding', 'utf-8');
+ 
+-		if (ini_get('date.timezone') === '') {
+-			echo('Flow requires the PHP setting "date.timezone" to be set. (Error #1342087777)');
+-			exit(1);
++		if (defined('HHVM_VERSION')) {
++			date_default_timezone_set('Europe/Berlin');
++		} else {
++			if (ini_get('date.timezone') === '') {
++				echo('Flow requires the PHP setting "date.timezone" to be set. (Error #1342087777)');
++				exit(1);
++			}
+ 		}
+ 
+ 		if (version_compare(PHP_VERSION, '5.4', '<') && get_magic_quotes_gpc() === 1) {
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Error/ErrorHandler.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Error/ErrorHandler.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Error/ErrorHandler.php	2014-03-13 21:00:07.127571404 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Error/ErrorHandler.php	2014-03-13 21:04:45.327563378 +0100
+@@ -58,7 +58,7 @@
+ 	 * @throws \Exception
+ 	 */
+ 	public function handleError($errorLevel, $errorMessage, $errorFile, $errorLine) {
+-		if (error_reporting() === 0) {
++		if (error_reporting() === 0 || (error_reporting() & $errorLevel) === 0) {
+ 			return;
+ 		}
+ 
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Http/Headers.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Http/Headers.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Http/Headers.php	2014-03-13 21:00:07.127571404 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Http/Headers.php	2014-03-13 21:04:45.327563378 +0100
+@@ -159,6 +159,11 @@
+ 			if ($convertedValues[$index] === FALSE) {
+ 				$convertedValues[$index] = $value;
+ 			}
++			// HHVM's implementation of DateTime::createFromFormat does NOT return
++			// FALSE on invalid dates, but an instance with timestamp <= 0!
++			if (defined('HHVM_VERSION') && $convertedValues[$index] instanceof \DateTime && $convertedValues[$index]->getTimestamp() <= 0) {
++				$convertedValues[$index] = $value;
++			}
+ 		}
+ 
+ 		return (count($convertedValues) > 1) ? $convertedValues : reset($convertedValues);
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Mvc/Routing/ObjectPathMappingRepository.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Mvc/Routing/ObjectPathMappingRepository.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Mvc/Routing/ObjectPathMappingRepository.php	2014-03-13 21:00:07.131571404 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Mvc/Routing/ObjectPathMappingRepository.php	2014-03-13 23:00:42.162681045 +0100
+@@ -25,11 +25,6 @@
+ class ObjectPathMappingRepository extends Repository {
+ 
+ 	/**
+-	 * @var string
+-	 */
+-	const ENTITY_CLASSNAME = 'TYPO3\Flow\Mvc\Routing\ObjectPathMapping';
+-
+-	/**
+ 	 * Doctrine's Entity Manager. Note that "ObjectManager" is the name of the related interface.
+ 	 *
+ 	 * @Flow\Inject
+@@ -45,6 +40,10 @@
+ 		'uriPattern' => QueryInterface::ORDER_ASCENDING
+ 	);
+ 
++	public function __construct() {
++		$this->entityClassName = 'TYPO3\Flow\Mvc\Routing\ObjectPathMapping';
++	}
++
+ 	/**
+ 	 * @param string $objectType the object type of the ObjectPathMapping object
+ 	 * @param string $uriPattern the URI pattern of the ObjectPathMapping object
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationArgument.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationArgument.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationArgument.php	2014-03-13 21:00:07.135571403 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationArgument.php	2014-03-13 23:17:39.218651704 +0100
+@@ -54,7 +54,10 @@
+ 	 * @param mixed $value Value of the argument
+ 	 * @param integer $type Type of the argument - one of the argument_TYPE_* constants
+ 	 */
+-	public function __construct($index, $value, $type = self::ARGUMENT_TYPES_STRAIGHTVALUE) {
++	public function __construct($index, $value, $type = NULL) {
++		if ($type === NULL) {
++			$type = self::ARGUMENT_TYPES_STRAIGHTVALUE;
++		}
+ 		$this->set($index, $value, $type);
+ 	}
+ 
+@@ -66,7 +69,10 @@
+ 	 * @param integer $type Type of the argument - one of the ARGUMENT_TYPE_* constants
+ 	 * @return void
+ 	 */
+-	public function set($index, $value, $type = self::ARGUMENT_TYPES_STRAIGHTVALUE) {
++	public function set($index, $value, $type = NULL) {
++		if ($type === NULL) {
++			$type = self::ARGUMENT_TYPES_STRAIGHTVALUE;
++		}
+ 		$this->index = $index;
+ 		$this->value = $value;
+ 		$this->type = $type;
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationProperty.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationProperty.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationProperty.php	2014-03-13 21:00:07.135571403 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Configuration/ConfigurationProperty.php	2014-03-13 23:18:09.006650845 +0100
+@@ -59,7 +59,10 @@
+ 	 * @param integer $type Type of the property - one of the PROPERTY_TYPE_* constants
+ 	 * @param \TYPO3\Flow\Object\Configuration\Configuration $objectConfiguration If $type is OBJECT, a custom object configuration may be specified
+ 	 */
+-	public function __construct($name, $value, $type = self::PROPERTY_TYPES_STRAIGHTVALUE, $objectConfiguration = NULL) {
++	public function __construct($name, $value, $type = NULL, $objectConfiguration = NULL) {
++		if ($type === NULL) {
++			$type = self::ARGUMENT_TYPES_STRAIGHTVALUE;
++		}
+ 		$this->set($name, $value, $type, $objectConfiguration);
+ 	}
+ 
+@@ -72,7 +75,10 @@
+ 	 * @param \TYPO3\Flow\Object\Configuration\Configuration $objectConfiguration If $type is OBJECT, a custom object configuration may be specified
+ 	 * @return void
+ 	 */
+-	public function set($name, $value, $type = self::PROPERTY_TYPES_STRAIGHTVALUE, $objectConfiguration = NULL) {
++	public function set($name, $value, $type = NULL, $objectConfiguration = NULL) {
++		if ($type === NULL) {
++			$type = self::ARGUMENT_TYPES_STRAIGHTVALUE;
++		}
+ 		$this->name = $name;
+ 		$this->value = $value;
+ 		$this->type = $type;
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Package/Package.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Package/Package.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Package/Package.php	2014-03-15 14:35:31.533661607 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Package/Package.php	2014-03-15 14:45:59.845643481 +0100
+@@ -234,14 +234,14 @@
+ 		if (!$this->namespace) {
+ 			$manifest = $this->getComposerManifest();
+ 			if (isset($manifest->autoload->{self::AUTOLOADER_TYPE_PSR0})) {
+-				$namespaces = $manifest->autoload->{self::AUTOLOADER_TYPE_PSR0};
++				$namespaces = (array)$manifest->autoload->{self::AUTOLOADER_TYPE_PSR0};
+ 				if (count($namespaces) === 1) {
+ 					$namespace = key($namespaces);
+ 				} else {
+ 					throw new Exception\InvalidPackageStateException(sprintf('The Composer manifest of package "%s" contains multiple namespace definitions in its autoload section but Flow does only support one namespace per package.', $this->packageKey), 1348053245);
+ 				}
+ 			} elseif (isset($manifest->autoload->{self::AUTOLOADER_TYPE_PSR4})) {
+-				$namespaces = $manifest->autoload->{self::AUTOLOADER_TYPE_PSR4};
++				$namespaces = (array)$manifest->autoload->{self::AUTOLOADER_TYPE_PSR4};
+ 				if (count($namespaces) === 1) {
+ 					$namespace = key($namespaces);
+ 				} else {
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/AccountRepository.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/AccountRepository.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/AccountRepository.php	2014-03-13 21:00:07.139571403 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/AccountRepository.php	2014-03-13 21:04:45.327563378 +0100
+@@ -21,15 +21,14 @@
+ class AccountRepository extends \TYPO3\Flow\Persistence\Repository {
+ 
+ 	/**
+-	 * @var string
+-	 */
+-	const ENTITY_CLASSNAME = 'TYPO3\Flow\Security\Account';
+-
+-	/**
+ 	 * @var array
+ 	 */
+ 	protected $defaultOrderings = array('creationDate' => \TYPO3\Flow\Persistence\QueryInterface::ORDER_DESCENDING);
+ 
++	public function __construct() {
++		$this->entityClassName = 'TYPO3\Flow\Security\Account';
++	}
++
+ 	/**
+ 	 * Returns the account for a specific authentication provider with the given identifier
+ 	 *
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/Role.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/Role.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/Role.php	2014-03-13 21:00:07.143571403 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/Role.php	2014-03-13 23:16:44.358653287 +0100
+@@ -73,7 +73,11 @@
+ 	 * @param string $sourceHint One of the SOURCE_* constants, indicating where a role comes from
+ 	 * @throws \InvalidArgumentException
+ 	 */
+-	public function __construct($identifier, $sourceHint = self::SOURCE_USER) {
++	public function __construct($identifier, $sourceHint = NULL) {
++		// HHVM fix (issue #1499)
++		if ($sourceHint === NULL) {
++			$sourceHint = self::SOURCE_USER;
++		}
+ 		if (!is_string($identifier)) {
+ 			throw new \InvalidArgumentException('The role identifier must be a string, "' . gettype($identifier) . '" given. Please check the code or policy configuration creating or defining this role.', 1296509556);
+ 		}
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/RoleRepository.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/RoleRepository.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/RoleRepository.php	2014-03-13 21:00:07.143571403 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Security/Policy/RoleRepository.php	2014-03-13 21:04:45.327563378 +0100
+@@ -21,11 +21,6 @@
+ class RoleRepository extends \TYPO3\Flow\Persistence\Repository {
+ 
+ 	/**
+-	 * @var string
+-	 */
+-	const ENTITY_CLASSNAME = 'TYPO3\Flow\Security\Policy\Role';
+-
+-	/**
+ 	 * Doctrine's Entity Manager. Note that "ObjectManager" is the name of the related
+ 	 * interface ...
+ 	 *
+@@ -45,6 +40,13 @@
+ 	protected $newRoles = array();
+ 
+ 	/**
++	 * Overrite entity class name here. HHVM does not support overriding of constants.
++	 */
++	public function __construct() {
++		$this->entityClassName = 'TYPO3\Flow\Security\Policy\Role';
++	}
++
++	/**
+ 	 * Adds a role to this repository.
+ 	 *
+ 	 * @param \TYPO3\Flow\Security\Policy\Role $role The role to add
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Unicode/TextIterator.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Unicode/TextIterator.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Unicode/TextIterator.php	2014-03-13 21:00:07.147571403 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Unicode/TextIterator.php	2014-03-13 23:15:46.242654964 +0100
+@@ -88,7 +88,11 @@
+ 	 * @param integer $iteratorType The type of iterator
+ 	 * @throws \TYPO3\Flow\Error\Exception
+ 	 */
+-	public function __construct($subject, $iteratorType = self::CHARACTER) {
++	public function __construct($subject, $iteratorType = NULL) {
++		// HHVM fix (issue #1499)
++		if ($iteratorType === NULL) {
++			$iteratorType = self::CHARACTER;
++		}
+ 		if ($iteratorType < 1 || $iteratorType > 6) {
+ 			throw new \TYPO3\Flow\Error\Exception('Fatal error: Invalid iterator type in TextIterator constructor', 1210849014);
+ 		}
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Party/Classes/TYPO3/Party/Domain/Repository/PartyRepository.php neos-hhvm/Packages/Framework/TYPO3.Party/Classes/TYPO3/Party/Domain/Repository/PartyRepository.php
+--- neos-vanilla/Packages/Framework/TYPO3.Party/Classes/TYPO3/Party/Domain/Repository/PartyRepository.php	2014-03-13 21:00:08.383571367 +0100
++++ neos-hhvm/Packages/Framework/TYPO3.Party/Classes/TYPO3/Party/Domain/Repository/PartyRepository.php	2014-03-13 23:01:33.318679570 +0100
+@@ -20,6 +20,8 @@
+  */
+ class PartyRepository extends \TYPO3\Flow\Persistence\Repository {
+ 
+-	const ENTITY_CLASSNAME = 'TYPO3\Party\Domain\Model\AbstractParty';
++	public function __construct() {
++		$this->entityClassName = 'TYPO3\Party\Domain\Model\AbstractParty';
++	}
+ 
+ }
+ 
+diff -ur neos-vanilla/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOConnection.php neos-hhvm/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOConnection.php
+--- neos-vanilla/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOConnection.php	2013-05-11 09:45:37.000000000 +0200
++++ neos-hhvm/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOConnection.php	2014-03-13 21:17:49.143540765 +0100
+@@ -37,4 +37,51 @@
+         $this->setAttribute(PDO::ATTR_STATEMENT_CLASS, array('Doctrine\DBAL\Driver\PDOStatement', array()));
+         $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+     }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function prepare($prepareString, $driverOptions = array())
++    {
++        return parent::prepare($prepareString, $driverOptions);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function query()
++    {
++        $args = func_get_args();
++        $argsCount = count($args);
++
++        if ($argsCount == 4) {
++            return parent::query($args[0], $args[1], $args[2], $args[3]);
++        }
++
++        if ($argsCount == 3) {
++            return parent::query($args[0], $args[1], $args[2]);
++        }
++
++        if ($argsCount == 2) {
++            return parent::query($args[0], $args[1]);
++        }
++
++        return parent::query($args[0]);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function quote($input, $type = \PDO::PARAM_STR)
++    {
++        return parent::quote($input, $type);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function lastInsertId($name = null)
++    {
++        return parent::lastInsertId($name);
++    }
+ }
+diff -ur neos-vanilla/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOStatement.php neos-hhvm/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOStatement.php
+--- neos-vanilla/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOStatement.php	2013-05-11 09:45:37.000000000 +0200
++++ neos-hhvm/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/PDOStatement.php	2014-03-13 21:17:55.119540593 +0100
+@@ -29,7 +29,12 @@
+  */
+ class PDOStatement extends \PDOStatement implements Statement
+ {
+-    private function __construct() {}
++    /**
++     * Protected constructor.
++     */
++    protected function __construct()
++    {
++    }
+ 
+     public function setFetchMode($fetchMode, $arg2 = null, $arg3 = null)
+     {
+@@ -47,4 +52,76 @@
+ 
+         return parent::setFetchMode($fetchMode, $arg2, $arg3);
+     }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function bindValue($param, $value, $type = \PDO::PARAM_STR)
++    {
++        return parent::bindValue($param, $value, $type);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function bindParam($column, &$variable, $type = \PDO::PARAM_STR, $length = null, $driverOptions = array())
++    {
++        return parent::bindParam($column, $variable, $type, $length, $driverOptions);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function execute($params = null)
++    {
++        return parent::execute($params);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function fetch($fetchMode = null, $cursorOrientation = null, $cursorOffset = null)
++    {
++        if ($fetchMode === null && $cursorOrientation === null && $cursorOffset === null) {
++            return parent::fetch();
++        }
++
++        if ($cursorOrientation === null && $cursorOffset === null) {
++            return parent::fetch($fetchMode);
++        }
++
++        if ($cursorOffset === null) {
++            return parent::fetch($fetchMode, $cursorOrientation);
++        }
++
++        return parent::fetch($fetchMode, $cursorOrientation, $cursorOffset);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function fetchAll($fetchMode = null, $fetchArgument = null, $ctorArgs = null)
++    {
++        if ($fetchMode === null && $fetchArgument === null && $ctorArgs === null) {
++            return parent::fetchAll();
++        }
++
++        if ($fetchArgument === null && $ctorArgs === null) {
++            return parent::fetchAll($fetchMode);
++        }
++
++        if ($ctorArgs === null) {
++            return parent::fetchAll($fetchMode, $fetchArgument);
++        }
++
++        return parent::fetchAll($fetchMode, $fetchArgument, $ctorArgs);
++    }
++
++    /**
++     * {@inheritdoc}
++     */
++    public function fetchColumn($columnIndex = 0)
++    {
++        return parent::fetchColumn($columnIndex);
++    }
+ }
