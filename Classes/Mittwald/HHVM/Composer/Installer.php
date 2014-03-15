@@ -18,14 +18,19 @@ class Installer {
 		}
 
 		try {
-			self::applyPatches($io, []);
+			self::applyPatches($io, $patches);
 			self::copyHhvmConfigFile($io);
 		} catch (\Exception $exception) {
 			$io->write('<error>' . $exception->getMessage() . '</error>');
 			return;
 		}
 
-		$io->write('Start HHVM with <comment>hhvm -m server -c Configuration/HipHopJit.hdf</comment>.');
+		$io->write([
+			'',
+			'Your TYPO3 Flow/Neos installation is now ready for usage with HHVM.',
+			'To start HHVM (port 9000), use the following command:',
+			'    <comment>hhvm -m server -c Configuration/HipHopJit.hdf</comment>'
+		]);
 	}
 
 	static private function copyHhvmConfigFile(IOInterface $io) {
