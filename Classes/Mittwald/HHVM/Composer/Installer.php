@@ -43,7 +43,7 @@ class Installer {
 		$contents = str_replace('###PATH###', getcwd(), $contents);
 
 		file_put_contents('Configuration/HipHopJit.hdf', $contents);
-		$io->write('<comment>Created "Configuration/HipHopJit.hdf"</comment>');
+		$io->write('<info>Created <comment>Configuration/HipHopJit.hdf</comment>.</info>');
 	}
 
 	static private function applyPatches(IOInterface $io, array $patches) {
@@ -69,10 +69,12 @@ class Installer {
 
 				if ($exitCode !== 0) {
 					$io->write([
-						'<warning>The patch "' . $patch . '" could not be applied cleanly.</warning>',
-						'<warning>This is not necessarily something bad, since it is also possible that the</warning>',
-						'<warning>has already been applied. Nevertheless, here\'s the output of patch,</warning>',
-						'<warning>please make sure that nothing is wrong:'
+						'',
+						'<warning>The patch "' . $patch . '" could not be applied cleanly.' . PHP_EOL .
+						'This is not necessarily something bad, since it is also possible that the' . PHP_EOL .
+						'patch has already been applied. Nevertheless, here\'s the output of patch,' . PHP_EOL .
+						'please make sure that nothing is wrong:</warning>',
+						''
 					]);
 
 					$lines = explode("\n", $response);
