@@ -68,7 +68,7 @@ class Installer {
 		$io->write('  - Set <comment>TYPO3.Flow.core.phpBinaryPathAndFilename</comment> to <comment>' . $hhvmBinary . '</comment>');
 		$io->write('  - Set <comment>TYPO3.Flow.core.subRequestPhpIniPathAndFilename</comment> to <comment>false</comment>');
 
-		file_put_contents($configurationFile, Yaml::dump($config));
+		file_put_contents($configurationFile, Yaml::dump($config, 99, 2));
 		$io->write('  - Wrote <comment>' . $configurationFile . '</comment>.');
 	}
 
