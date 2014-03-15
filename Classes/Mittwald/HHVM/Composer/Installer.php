@@ -3,6 +3,7 @@ namespace Mittwald\HHVM\Composer;
 
 use Composer\IO\IOInterface;
 use Composer\Script\CommandEvent;
+use Symfony\Component\Yaml\Yaml;
 
 class Installer {
 
@@ -18,6 +19,7 @@ class Installer {
 		}
 
 		try {
+			self::fixConfigurationFile($io);
 			self::applyPatches($io, $patches);
 			self::copyHhvmConfigFile($io);
 		} catch (\Exception $exception) {
@@ -31,6 +33,43 @@ class Installer {
 			'To start HHVM (port 9000), use the following command:',
 			'    <comment>hhvm -m server -c Configuration/HipHopJit.hdf</comment>'
 		]);
+	}
+
+	static private function fixConfigurationFile(IOInterface $io) {
+		$configurationFile = 'Configuration/Settings.yaml';
+
+		$io->write('<info>Fixing configuration file.</info>');
+
+		if (file_exists($configurationFile)) {
+			$io->write('  - Configuration file <comment>' . $configurationFile . '</comment> already exists.');
+
+			$content = file_get_contents($configurationFile);
+			$config = Yaml::parse($content);
+
+			$io->write('  - Parsed <comment>' . $configurationFile . '</comment>.');
+		} else {
+			$io->write('  - Configuration file <comment>' . $configurationFile . '</comment> does not yet exist.');
+			$config = [];
+		}
+
+		$hhvmBinary = exec('which hhvm', $output, $result);
+		if ($result !== 0 || !$hhvmBinary) {
+			throw new \Exception(
+				'Could not find the "hhvm" binary on your system. Please make sure ' .
+				'that you have HHVM installed and your PATH contains the "hhvm" binary.'
+			);
+		}
+
+		$io->write('  - Found HHVM at <comment>' . $hhvmBinary . '</comment>');
+
+		$config['TYPO3']['Flow']['core']['phpBinaryPathAndFilename'] = $hhvmBinary;
+		$config['TYPO3']['Flow']['core']['subRequestPhpIniPathAndFilename'] = FALSE;
+
+		$io->write('  - Set <comment>TYPO3.Flow.core.phpBinaryPathAndFilename</comment> to <comment>' . $hhvmBinary . '</comment>');
+		$io->write('  - Set <comment>TYPO3.Flow.core.subRequestPhpIniPathAndFilename</comment> to <comment>false</comment>');
+
+		file_put_contents($configurationFile, Yaml::dump($config));
+		$io->write('  - Wrote <comment>' . $configurationFile . '</comment>.');
 	}
 
 	static private function copyHhvmConfigFile(IOInterface $io) {
