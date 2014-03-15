@@ -1,0 +1,16 @@
+{
+    "name": "mittwald/flow-hhvm",
+    "type": "typo3-flow-package",
+    "description": "Compatibility package for running TYPO3 Flow and Neos on HHVM.",
+    "require": {
+        "typo3/flow": "*"
+    },
+    "extra": {
+        "installer-name": "HHVM"
+    }
+    "autoload": {
+        "psr-0": {
+            "Mittwald\\HHVM": "Classes"
+        }
+    }
+}
