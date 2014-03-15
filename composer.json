@@ -7,7 +7,7 @@
     },
     "extra": {
         "installer-name": "HHVM"
-    }
+    },
     "autoload": {
         "psr-0": {
             "Mittwald\\HHVM": "Classes"
