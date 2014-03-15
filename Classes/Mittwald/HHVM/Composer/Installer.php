@@ -51,8 +51,11 @@ class Installer {
 		}
 
 		$io->write('<info>Found "patch" binary at "' . $patchBinary . '"</info>');
+		$io->write('<info>Applying HHVM patches.</info>');
 
 		foreach ($patches as $patch) {
+			$io->write('  - Applying <comment>' . $patch . '</comment>.');
+
 			$command = sprintf('%s -p1 -N -t -i %s/Build/Patches/%s', $patchBinary, self::PACKAGE_PATH, $patch);
 			$process = popen($command, 'r');
 			if (is_resource($process)) {
@@ -68,6 +71,8 @@ class Installer {
 					$io->write('<info>' . $response . '</info>');
 					$io->write('<comment>Successfully applied patch "' . $patch . '".</comment>');
 				}
+			} else {
+				throw new \Exception('Could not execute "' . $command . '".');
 			}
 		}
 	}
