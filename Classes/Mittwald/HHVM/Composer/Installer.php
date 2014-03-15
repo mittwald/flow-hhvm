@@ -62,6 +62,16 @@ class Installer {
 
 		$io->write('  - Found HHVM at <comment>' . $hhvmBinary . '</comment>');
 
+		if (
+			isset($config['TYPO3']['Flow']['core']['phpBinaryPathAndFilename']) &&
+			$config['TYPO3']['Flow']['core']['phpBinaryPathAndFilename'] === $hhvmBinary &&
+			isset($config['TYPO3']['Flow']['core']['subRequestPhpIniPathAndFilename']) &&
+			$config['TYPO3']['Flow']['core']['subRequestPhpIniPathAndFilename'] === FALSE
+		) {
+			$io->write('  - No further action necessary.');
+			return;
+		}
+
 		$config['TYPO3']['Flow']['core']['phpBinaryPathAndFilename'] = $hhvmBinary;
 		$config['TYPO3']['Flow']['core']['subRequestPhpIniPathAndFilename'] = FALSE;
 
