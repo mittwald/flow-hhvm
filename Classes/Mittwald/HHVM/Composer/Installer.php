@@ -61,20 +61,30 @@ class Installer {
 		foreach ($patches as $patch) {
 			$io->write('  - Applying <comment>' . $patch . '</comment>.');
 
-			$command = sprintf('%s -p1 -N -t -i %s/Build/Patches/%s', $patchBinary, self::PACKAGE_PATH, $patch);
+			$command = sprintf('%s -s -p1 -N -t -i %s/Build/Patches/%s', $patchBinary, self::PACKAGE_PATH, $patch);
 			$process = popen($command, 'r');
 			if (is_resource($process)) {
 				$response = stream_get_contents($process);
 				$exitCode = pclose($process);
 
 				if ($exitCode !== 0) {
-					$io->write('<warning>' . $response . '</warning>');
-					throw new \Exception(
-						'The command "' . $command . '" failed with exit code ' . $exitCode . '.'
-					);
+					$io->write([
+						'<warning>The patch "' . $patch . '" could not be applied cleanly.</warning>',
+						'<warning>This is not necessarily something bad, since it is also possible that the</warning>',
+						'<warning>has already been applied. Nevertheless, here\'s the output of patch,</warning>',
+						'<warning>please make sure that nothing is wrong:'
+					]);
+
+					$lines = explode("\n", $response);
+					foreach ($lines as $line) {
+						$io->write('    <comment>' . $line . '</comment>');
+					}
 				} else {
-					$io->write('<info>' . $response . '</info>');
-					$io->write('<comment>Successfully applied patch "' . $patch . '".</comment>');
+					$lines = explode("\n", $response);
+					foreach ($lines as $line) {
+						$io->write('    <comment>' . $line . '</comment>');
+					}
+					$io->write('<info>Successfully applied patch "' . $patch . '".</info>');
 				}
 			} else {
 				throw new \Exception('Could not execute "' . $command . '".');
