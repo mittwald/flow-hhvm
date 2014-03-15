@@ -1,0 +1,40 @@
+Server {
+	SourceRoot = ###PATH###/Web
+	DefaultDocument = index.php
+	Port = 9000
+    ThreadCount = 100
+}
+
+Eval {
+	Jit = true
+}
+
+VirtualHost {
+	* {
+		Pattern = .*
+		ServerVariables {
+			FLOW_REWRITEURLS = 1
+		}
+		RewriteRules {
+			persistentresources {
+				pattern = ^/?(_Resources/Persistent/.{40})/.+(\..+)
+				to = $1$2
+			}
+
+			index {
+				pattern = ^(.*)
+				to = index.php/$1
+				qsa = true
+			}
+		}
+	}
+}
+
+StaticFile {
+	Extensions {
+		css = text/css
+		js  = text/javascript
+		png = image/png
+		jpg = image/jpeg
+	}
+}
