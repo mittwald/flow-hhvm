@@ -139,11 +139,11 @@ class Installer {
 						}
 					}
 				} else {
-					$lines = explode("\n", $response);
+					$lines = array_filter(explode("\n", $response));
 					foreach ($lines as $line) {
 						$io->write('    <comment>' . $line . '</comment>');
 					}
-					$io->write('<info>Successfully applied patch "' . $patch . '".</info>');
+					$io->write('  - <info>Successfully applied patch <comment>' . $patch . '</comment>.</info>');
 				}
 			} else {
 				throw new \Exception('Could not execute "' . $command . '".');
