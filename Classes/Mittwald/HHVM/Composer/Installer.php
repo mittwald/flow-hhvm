@@ -78,8 +78,15 @@ class Installer {
 					]);
 
 					$lines = explode("\n", $response);
-					foreach ($lines as $line) {
-						$io->write('    <comment>' . $line . '</comment>');
+					$lcount = count($lines);
+
+					for ($i = 0; $i < $lcount; $i ++) {
+						if (strpos(strtolower($lines[$i]), 'reversed') !== FALSE) {
+							$io->write('    <info>' . $lines[$i] . '</info>');
+							$io->write('    <info>' . $lines[++$i] . '</info>');
+						} else {
+							$io->write('    <comment>' . $lines[$i] . '</comment>');
+						}
 					}
 				} else {
 					$lines = explode("\n", $response);
