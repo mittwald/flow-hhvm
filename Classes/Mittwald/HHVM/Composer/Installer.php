@@ -31,6 +31,7 @@ class Installer {
 			'',
 			'Your TYPO3 Flow/Neos installation is now ready for usage with HHVM.',
 			'To start HHVM (port 9000), use the following command:',
+			'',
 			'    <comment>hhvm -m server -c Configuration/HipHopJit.hdf</comment>'
 		]);
 	}
