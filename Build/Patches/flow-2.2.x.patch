@@ -392,3 +392,23 @@ diff -ur neos-vanilla/Packages/Libraries/doctrine/dbal/lib/Doctrine/DBAL/Driver/
 +        return parent::fetchColumn($columnIndex);
 +    }
  }
+diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Files.php neos-hhvm/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Files.php
+--- neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Files.php	2014-03-15 20:24:05.597058254 +0100
++++ neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Utility/Files.php	2014-03-15 20:24:10.621058110 +0100
+@@ -394,7 +394,15 @@
+ 			}
+ 			return file_exists($link);
+ 		} else {
+-			return \symlink($relativeTargetPath, $link);
++			if (defined('HHVM_VERSION')) {
++				exec(sprintf('ln -s %s %s', escapeshellarg($relativeTargetPath), escapeshellarg($link)), $output, $return);
++				if ($return !== 0) {
++					throw new \TYPO3\Flow\Exception(sprintf('Error while attempting to create a relative symlink at "%s" pointing to "%s". Make sure you have sufficient privileges and your operating system supports symlinks.', $link, $relativeTargetPath), 1378986321);
++				}
++				return file_exists($link);
++			} else {
++				return \symlink($relativeTargetPath, $link);
++			}
+ 		}
+ 	}
+ 
