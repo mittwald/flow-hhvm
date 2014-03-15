@@ -6,7 +6,7 @@
         "typo3/flow": "*"
     },
     "extra": {
-        "installer-name": "HHVM"
+        "installer-name": "Mittwald.HHVM"
     },
     "autoload": {
         "psr-0": {
