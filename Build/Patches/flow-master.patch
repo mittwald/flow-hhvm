@@ -108,7 +108,7 @@ diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Co
 -	public function __construct($name, $value, $type = self::PROPERTY_TYPES_STRAIGHTVALUE, $objectConfiguration = NULL) {
 +	public function __construct($name, $value, $type = NULL, $objectConfiguration = NULL) {
 +		if ($type === NULL) {
-+			$type = self::ARGUMENT_TYPES_STRAIGHTVALUE;
++			$type = self::PROPERTY_TYPES_STRAIGHTVALUE;
 +		}
  		$this->set($name, $value, $type, $objectConfiguration);
  	}
@@ -120,7 +120,7 @@ diff -ur neos-vanilla/Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Object/Co
 -	public function set($name, $value, $type = self::PROPERTY_TYPES_STRAIGHTVALUE, $objectConfiguration = NULL) {
 +	public function set($name, $value, $type = NULL, $objectConfiguration = NULL) {
 +		if ($type === NULL) {
-+			$type = self::ARGUMENT_TYPES_STRAIGHTVALUE;
++			$type = self::PROPERTY_TYPES_STRAIGHTVALUE;
 +		}
  		$this->name = $name;
  		$this->value = $value;
