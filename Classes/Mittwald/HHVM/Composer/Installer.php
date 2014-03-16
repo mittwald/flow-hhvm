@@ -167,7 +167,7 @@ class Installer {
 		foreach ($patches as $patch) {
 			$io->write('  - Applying <comment>' . $patch . '</comment>.');
 
-			$command = sprintf('%s -s -p1 -N -t -i %s/Build/Patches/%s', $patchBinary, self::PACKAGE_PATH, $patch);
+			$command = sprintf('%s -p1 -N -t -i %s/Build/Patches/%s', $patchBinary, self::PACKAGE_PATH, $patch);
 			$process = popen($command, 'r');
 			if (is_resource($process)) {
 				$response = stream_get_contents($process);
