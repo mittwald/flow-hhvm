@@ -61,7 +61,7 @@ class Installer {
 		if (is_dir('Packages/Framework/TYPO3.Flow')) {
 			$patches[] = 'flow-2.2.x.patch';
 		}
-		if (is_dir('Packages/Applications/TYPO3.Neos')) {
+		if (is_dir('Packages/Application/TYPO3.Neos')) {
 			$patches[] = 'neos-1.0.x.patch';
 		}
 
@@ -187,9 +187,11 @@ class Installer {
 					$lcount = count($lines);
 
 					for ($i = 0; $i < $lcount; $i++) {
-						if (strpos(strtolower($lines[$i]), 'reversed') !== FALSE) {
+						if (preg_match(',(reversed|patching file|succeeded),i', $lines[$i]) {
 							$io->write('    <info>' . $lines[$i] . '</info>');
 							$io->write('    <info>' . $lines[++$i] . '</info>');
+						} else if (preg_match(',(failed),i', $lines[$i]) {
+							$io->write('    <warning>' . $lines[$i] . '</warning>');
 						} else {
 							$io->write('    <comment>' . $lines[$i] . '</comment>');
 						}
