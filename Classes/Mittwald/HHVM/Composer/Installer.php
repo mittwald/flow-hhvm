@@ -187,10 +187,10 @@ class Installer {
 					$lcount = count($lines);
 
 					for ($i = 0; $i < $lcount; $i++) {
-						if (preg_match(',(reversed|patching file|succeeded),i', $lines[$i]) {
+						if (preg_match(',(reversed|patching file|succeeded),i', $lines[$i])) {
 							$io->write('    <info>' . $lines[$i] . '</info>');
 							$io->write('    <info>' . $lines[++$i] . '</info>');
-						} else if (preg_match(',(failed),i', $lines[$i]) {
+						} else if (preg_match(',(failed),i', $lines[$i])) {
 							$io->write('    <warning>' . $lines[$i] . '</warning>');
 						} else {
 							$io->write('    <comment>' . $lines[$i] . '</comment>');
