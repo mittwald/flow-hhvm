@@ -100,3 +100,16 @@ diff -ur neos-vanilla/Packages/Libraries/imagine/imagine/lib/Imagine/Filter/Basi
      }
  
      /**
+diff -ur neos-vanilla/Web/index.php neos-hhvm/Web/index.php
+--- neos-vanilla/Web/index.php.orig	2014-03-18 20:29:49.479779490 +0100
++++ neos-hhvm/index.php	2014-03-18 20:29:57.395779262 +0100
+@@ -20,6 +20,8 @@
+ 	$rootPath .= '/';
+ }
+ 
++error_reporting(0);
++
+ require($rootPath . 'Packages/Framework/TYPO3.Flow/Classes/TYPO3/Flow/Core/Bootstrap.php');
+ 
+ $context = getenv('FLOW_CONTEXT') ?: (getenv('REDIRECT_FLOW_CONTEXT') ?: 'Development');
+
