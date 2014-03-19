@@ -1,5 +1,5 @@
 {
-    "name": "mittwald/flow-hhvm",
+    "name": "mittwald-typo3/flow-hhvm",
     "type": "typo3-flow-package",
     "description": "Compatibility package for running TYPO3 Flow and Neos on HHVM.",
     "require": {
